@@ -4,14 +4,17 @@ import UIKit
 @IBDesignable
 open class TKTransitionSubmitButton : UIButton, UIViewControllerTransitioningDelegate, CAAnimationDelegate {
     
-    lazy var spiner: SpinerLayer! = {
-        let s = SpinerLayer(frame: self.frame)
-        return s
+    lazy var spiner: SpinerLayer? = {
+        if #available(iOS 10, *) {
+            let s = SpinerLayer(frame: self.frame)
+            return s
+        }
+        return nil
     }()
     
     @IBInspectable open var spinnerColor: UIColor = UIColor.white {
         didSet {
-            spiner.spinnerColor = spinnerColor
+            spiner?.spinnerColor = spinnerColor
         }
     }
     
@@ -42,10 +45,11 @@ open class TKTransitionSubmitButton : UIButton, UIViewControllerTransitioningDel
     
     func setup() {
         self.clipsToBounds = true
-        spiner.spinnerColor = spinnerColor
+        spiner?.spinnerColor = spinnerColor
     }
     
     open func startLoadingAnimation() {
+        guard let spiner = spiner else { return }
         self.isAnimating = true
         self.cachedTitle = title(for: UIControl.State())
         self.setTitle("", for: UIControl.State())
@@ -55,16 +59,20 @@ open class TKTransitionSubmitButton : UIButton, UIViewControllerTransitioningDel
         self.cornerRadius()
         self.shrink()
         _ = Timer.schedule(delay: self.shrinkDuration - 0.25) { timer in
-            self.spiner.animation()
+            spiner.animation()
         }
     }
     
     open func startFinishAnimation(_ delay: TimeInterval, completion:(()->())?) {
+        
+        guard let spiner = spiner else {
+            completion?()
+            return }
         self.isAnimating = true
         _ = Timer.schedule(delay: delay) { timer in
             self.didEndFinishAnimation = completion
             self.expand()
-            self.spiner.stopAnimation()
+            spiner.stopAnimation()
         }
     }
     
@@ -74,8 +82,10 @@ open class TKTransitionSubmitButton : UIButton, UIViewControllerTransitioningDel
     }
     
     open func setOriginalState() {
+        
+        guard let spiner = spiner else { return }
         self.returnToOriginalState()
-        self.spiner.stopAnimation()
+        spiner.stopAnimation()
     }
     
     public func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
@@ -89,10 +99,12 @@ open class TKTransitionSubmitButton : UIButton, UIViewControllerTransitioningDel
     }
     
     open func returnToOriginalState() {
-        self.spiner.removeFromSuperlayer()
+        
+        guard let spiner = spiner else { return }
+        spiner.removeFromSuperlayer()
         self.layer.removeAllAnimations()
         self.setTitle(self.cachedTitle, for: UIControl.State())
-        self.spiner.stopAnimation()
+        spiner.stopAnimation()
         self.isAnimating = false
     }
     
